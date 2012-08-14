@@ -75,6 +75,12 @@ def _modify_relationship(relationship, unlink=False, is_sub=False):
 @SleepAfter
 def _request(reddit_session, page_url, params=None, data=None, timeout=45):
     """Make the http request and return the http response body."""
+    if reddit_session.access_token:
+        headers = {"Authorization": "bearer %s" % reddit_session.access_token}
+        headers.update(reddit_session.DEFAULT_HEADERS)
+    else:
+        headers = reddit_session.DEFAULT_HEADERS
+
     if reddit_session.config.log_requests >= 1:
         sys.stderr.write('retrieving: %s\n' % page_url)
     if reddit_session.config.log_requests >= 2:
