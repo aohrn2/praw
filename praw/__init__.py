@@ -21,7 +21,6 @@ import requests
 import six
 import sys
 import uuid
-from rauth.service import OAuth2Service
 from requests.compat import urljoin
 from update_checker import update_check
 from warnings import warn, warn_explicit
@@ -144,14 +143,9 @@ class Config(object):  # pylint: disable-msg=R0903
         self.log_requests = int(obj['log_requests'])
         self.regular_comments_max = int(obj['regular_comments_max'])
 
+        self.oauth = None
         self.oauth_client_id = obj.get('oauth_client_id')
         self.oauth_client_secret = obj.get('oauth_client_secret')
-        self.oauth = OAuth2Service(
-            name='reddit',
-            consumer_key=self.oauth_client_id,
-            consumer_secret=self.oauth_client_secret,
-            access_token_url='%s/api/v1/access_token' % self._ssl_url,
-            authorize_url='%s/api/v1/authorize' % self._ssl_url)
 
         if 'short_domain' in obj:
             self._short_domain = 'http://' + obj['short_domain']
@@ -184,6 +178,7 @@ class Config(object):  # pylint: disable-msg=R0903
         else:
             raise errors.ClientException('No short domain specified.')
 
+    @decorators.require_oauth
     def get_authorize_url(self, scope, state, redirect_uri, refreshable=False):
         """Return the URL to send the user to for OAuth 2 authorization."""
         duration = "permanent" if refreshable else "temporary"
@@ -193,6 +188,7 @@ class Config(object):  # pylint: disable-msg=R0903
                                             redirect_uri=redirect_uri,
                                             duration=duration)
 
+    @decorators.require_oauth
     def get_access_token(self, code, redirect_uri, refreshable=False):
         """Fetch the access token for an OAuth 2 authorization grant."""
         data = dict(grant_type='authorization_code',
@@ -206,6 +202,7 @@ class Config(object):  # pylint: disable-msg=R0903
         else:
             return response.content['access_token']
 
+    @decorators.require_oauth
     def refresh_access_token(self, refresh_token, redirect_uri):
         """
         Refresh the access token of a refreshable OAuth 2 authorization grant.

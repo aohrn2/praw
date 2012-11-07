@@ -25,6 +25,7 @@ import sys
 import time
 import warnings
 from functools import wraps
+from rauth.service import OAuth2Service
 from requests.compat import urljoin
 
 from praw import errors
@@ -229,6 +230,27 @@ def require_moderator(function):
                                                (six.text_type(self.user), sub))
         return function(self, subreddit, *args, **kwargs)
     return moderator_required_function
+
+
+def require_oauth(function):
+    """Indicate that oauth is required for a specific function.
+
+    If the settings are available, create the oauth session. Otherwise
+    raise a OAuthRequired exception."""
+    @wraps(function)
+    def oauth_required_function(config, *args, **kwargs):
+        if not config.oauth:
+            if not config.oauth_client_id or not config.oauth_client_secret:
+                raise errors.OAuthRequired('%r requires oauth' %
+                                           function.__name__)
+            config.oauth = OAuth2Service(
+                name='reddit',
+                consumer_key=config.oauth_client_id,
+                consumer_secret=config.oauth_client_secret,
+                access_token_url='%s/api/v1/access_token' % config._ssl_url,
+                authorize_url='%s/api/v1/authorize' % config._ssl_url)
+        return function(config, *args, **kwargs)
+    return oauth_required_function
 
 
 # Avoid circular import: http://effbot.org/zone/import-confusion.htm
