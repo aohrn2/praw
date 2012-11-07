@@ -9,8 +9,6 @@ from flask import request
 import praw
 import rauth.service
 
-SITE = "reddit"
-
 # Generate a unique value to pass to and from oauth.reddit.com as session state.
 # This serves as a CSRF countermeasure, but this implementation isn't
 # particularly secure, just a proof of concept.
@@ -18,14 +16,14 @@ oauth_state = hashlib.sha1(str(uuid.uuid1())).hexdigest()
 
 def get_authorize_url():
     """Constructs oauth.reddit.com URL to send user to for authorization."""
-    client = praw.Reddit(__name__, site_name=SITE)
+    client = praw.Reddit(__name__)
     return client.get_authorize_url(
         redirect_uri=flask.url_for("authorize_callback", _external=True),
         scope="identity", state=oauth_state)
 
 def get_access_token(code):
     """Fetches and returns access token from reddit.com."""
-    client = praw.Reddit(__name__, site_name=SITE)
+    client = praw.Reddit(__name__)
     return client.get_access_token(
         code, flask.url_for("authorize_callback", _external=True))
 
@@ -74,7 +72,7 @@ def authorize_callback():
     token = get_access_token(code)
 
     yield "<p>Access token retrieved. Fetching user information...</p>"
-    client = praw.Reddit(__name__, site_name=SITE, access_token=token)
+    client = praw.Reddit(__name__, access_token=token)
     response = client.request_json(
         praw.urljoin(client.config._ssl_url, "api/v1/me"))
 
